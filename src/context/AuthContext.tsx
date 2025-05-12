@@ -2,6 +2,9 @@
 
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { User, AuthResponse } from '../lib/types';
+import { setGlobalLogout } from '../lib/api';
+import { useRouter } from 'next/navigation';
+import Cookies from 'js-cookie';
 
 interface AuthContextType {
   user: User | null;
@@ -16,10 +19,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    const storedToken = localStorage.getItem('token');
+    const storedUser = Cookies.get('user');
+    const storedToken = Cookies.get('token');
     
     if (storedUser && storedToken) {
       setUser(JSON.parse(storedUser));
@@ -27,18 +31,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = (data: AuthResponse) => {
-    setUser(data.user);
-    setToken(data.accessToken);
-    localStorage.setItem('user', JSON.stringify(data.user));
-    localStorage.setItem('token', data.accessToken);
-  };
-
   const logout = () => {
     setUser(null);
     setToken(null);
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
+    Cookies.remove('user');
+    Cookies.remove('token');
+    router.push('/auth/login');
+  };
+
+  // Set up global logout function
+  useEffect(() => {
+    setGlobalLogout(logout);
+  }, []);
+
+  const login = (data: AuthResponse) => {
+    setUser(data.user);
+    setToken(data.accessToken);
+    Cookies.set('user', JSON.stringify(data.user), { expires: 7 }); // Expires in 7 days
+    Cookies.set('token', data.accessToken, { expires: 7 }); // Expires in 7 days
   };
 
   const isAuthenticated = !!user && !!token;

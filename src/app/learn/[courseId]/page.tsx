@@ -84,16 +84,18 @@ export default function CoursePage() {
         setContent(data);
         setShowRecommendedQuestions(false);
 
-        // Automatically expand the current section and its parent
+        // Expand all sections by default
         if (data?.courseHierarchy) {
           const newExpanded = new Set<string>();
-          const currentItem = data.courseHierarchy.find(item => item.current);
-          if (currentItem) {
-            newExpanded.add(currentItem.id);
-            if (currentItem.parentId) {
-              newExpanded.add(currentItem.parentId);
+          
+          // Add all content items to expanded sections
+          data.courseHierarchy.forEach(item => {
+            if (item.type === 'content') {
+              newExpanded.add(item.id);
             }
-          }
+          });
+
+          console.log('Expanded sections:', Array.from(newExpanded));
           setExpandedSections(newExpanded);
         }
       } catch (err) {
@@ -180,22 +182,26 @@ export default function CoursePage() {
   const renderSidebar = () => {
     if (!content?.courseHierarchy) return null;
 
-    // Group content by parentId
-    const groupedHierarchy: Record<string, any[]> = {};
+    // Create content map
+    const contentMap = new Map<string, any[]>();
     content.courseHierarchy.forEach(item => {
       if (item.type === 'content') {
-        groupedHierarchy[item.id] = [];
-      } else if (item.parentId) {
-        if (!groupedHierarchy[item.parentId]) {
-          groupedHierarchy[item.parentId] = [];
-        }
-        groupedHierarchy[item.parentId].push(item);
+        contentMap.set(item.id, []);
+      }
+    });
+
+    // Populate subcontents
+    content.courseHierarchy.forEach(item => {
+      if (item.type === 'subcontent' && item.parentId) {
+        const subContents = contentMap.get(item.parentId) || [];
+        subContents.push(item);
+        contentMap.set(item.parentId, subContents);
       }
     });
 
     return (
-      <div className="h-full overflow-y-auto p-4 bg-white rounded-lg shadow">
-        <div className="flex justify-between items-center mb-4">
+      <div className="h-full overflow-y-auto bg-white rounded-lg shadow">
+        <div className="flex justify-between items-center p-3 border-b">
           <h2 className="text-lg font-bold text-gray-800">Course Contents</h2>
           <button 
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -206,17 +212,20 @@ export default function CoursePage() {
             </svg>
           </button>
         </div>
-        <div className="space-y-2">
+        
+        <div className="p-2">
           {content.courseHierarchy
             .filter(item => item.type === 'content')
-            .map(contentItem => {
-              const subContents = groupedHierarchy[contentItem.id];
+            .map((contentItem, index) => {
+              const subContents = contentMap.get(contentItem.id) || [];
+              const hasCurrentContent = subContents.some(sub => sub.current === true);
+              const isCurrentContent = contentItem.current === true;
 
               return (
-                <div key={contentItem.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                <div key={`content-${contentItem.id}-${index}`} className="border border-gray-200 rounded-lg overflow-hidden mb-2">
                   <div 
-                    className={`p-3 flex justify-between items-center cursor-pointer transition-colors ${
-                      contentItem.current 
+                    className={`p-2 flex justify-between items-center cursor-pointer transition-colors ${
+                      isCurrentContent || hasCurrentContent
                         ? 'bg-indigo-100 text-indigo-800 border-l-4 border-indigo-600' 
                         : 'hover:bg-gray-50'
                     }`}
@@ -234,13 +243,14 @@ export default function CoursePage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </div>
-                  {expandedSections.has(contentItem.id) && subContents?.length > 0 && (
+                  
+                  {expandedSections.has(contentItem.id) && (
                     <div className="bg-gray-50">
-                      {subContents.map(subContent => (
+                      {subContents.map((subContent, subIndex) => (
                         <div 
-                          key={subContent.id}
-                          className={`pl-6 pr-3 py-2 border-b last:border-b-0 cursor-pointer transition-colors ${
-                            subContent.current 
+                          key={`subcontent-${subContent.id}-${subIndex}`}
+                          className={`pl-4 pr-2 py-2 border-b last:border-b-0 cursor-pointer transition-colors ${
+                            subContent.current === true
                               ? 'bg-indigo-50 text-indigo-800 border-l-4 border-indigo-600' 
                               : 'hover:bg-gray-100'
                           }`}
@@ -250,7 +260,7 @@ export default function CoursePage() {
                             <span className="text-sm truncate">
                               {subContent.serialNumber}. {subContent.title}
                             </span>
-                            {subContent.current && (
+                            {subContent.current === true && (
                               <span className="ml-2 text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full">
                                 Current
                               </span>
@@ -341,22 +351,27 @@ export default function CoursePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile sidebar toggle */}
-      <div className="md:hidden fixed top-4 left-4 z-20">
-        <button 
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="p-2 bg-white rounded-md shadow text-gray-700 hover:text-indigo-600 transition-colors"
-        >
-          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
+      {/* Mobile header with course title */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-30 bg-white shadow-sm border-b">
+        <div className="flex items-center justify-between p-4">
+          <h1 className="text-lg font-semibold text-gray-800 truncate">
+            {content?.title}
+          </h1>
+          <button 
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 text-gray-600 hover:text-indigo-600 focus:outline-none"
+          >
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
       </div>
       
-      <div className="flex flex-col md:flex-row">
+      <div className="flex flex-col md:flex-row pt-16 md:pt-0">
         {/* Sidebar */}
         <div className={`
-          fixed md:sticky top-0 left-0 h-full md:h-screen w-64 transform transition-transform z-10
+          fixed md:sticky top-0 left-0 h-full md:h-screen w-72 transform transition-transform z-20
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           md:translate-x-0 md:flex md:flex-shrink-0
         `}>
@@ -369,23 +384,32 @@ export default function CoursePage() {
         
         {/* Backdrop for mobile */}
         {sidebarOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-0 md:hidden" onClick={() => setSidebarOpen(false)}></div>
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-10 md:hidden" 
+            onClick={() => setSidebarOpen(false)}
+          />
         )}
         
         {/* Main content area */}
-        <div className="flex-1 p-4 md:ml-4">
-          <div className="flex flex-col lg:flex-row">
+        <div className="flex-1 p-4 md:p-6">
+          <div className="flex flex-col lg:flex-row max-w-[1400px] mx-auto gap-6">
             {/* Main Content */}
-            <div className="flex-1 lg:mx-4">
-              <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-                <h1 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">{content.title}</h1>
+            <div className="flex-1">
+              <div className="bg-white rounded-xl shadow-md p-4 md:p-6 mb-6">
+                <h1 className="text-xl md:text-2xl font-bold text-gray-800 mb-4 md:mb-6 border-b pb-4">
+                  {content?.title}
+                </h1>
                 
                 <div className="prose max-w-none">
-                  <p className="whitespace-pre-line text-gray-700">{content.text}</p>
+                  <p className="whitespace-pre-line text-gray-700 text-sm md:text-base">
+                    {content?.text}
+                  </p>
                   
-                  {content.requestedQuestion && (
-                    <div className="mt-8 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                      <h2 className="text-lg font-semibold text-gray-800 mb-3">Question: {content.requestedQuestion.text}</h2>
+                  {content?.requestedQuestion && (
+                    <div className="mt-6 md:mt-8 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                      <h2 className="text-base md:text-lg font-semibold text-gray-800 mb-3">
+                        Question: {content.requestedQuestion.text}
+                      </h2>
                       <button
                         onClick={() => setShowAnswer(!showAnswer)}
                         className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center"
@@ -409,17 +433,19 @@ export default function CoursePage() {
                       </button>
                       {showAnswer && (
                         <div className="mt-3 p-4 bg-white rounded border border-gray-200">
-                          <p className="text-gray-800">{content.requestedQuestion.answer}</p>
+                          <p className="text-gray-800 text-sm md:text-base">
+                            {content.requestedQuestion.answer}
+                          </p>
                         </div>
                       )}
                     </div>
                   )}
                   
-                  <div className="mt-8">
+                  <div className="mt-6 md:mt-8">
                     <button
                       onClick={handleComplete}
                       disabled={isLoading}
-                      className="w-full py-3 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors flex items-center justify-center"
+                      className="w-full py-3 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors flex items-center justify-center text-sm md:text-base"
                     >
                       {isLoading ? (
                         <>
@@ -442,17 +468,17 @@ export default function CoursePage() {
                 </div>
               </div>
               
-              {showRecommendedQuestions && content.recommendedQuestions.length > 0 && (
-                <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-                  <h2 className="text-xl font-semibold text-gray-800 mb-4">Recommended Questions</h2>
-                  <div className="space-y-4">
+              {showRecommendedQuestions && content?.recommendedQuestions.length > 0 && (
+                <div className="bg-white rounded-xl shadow-md p-4 md:p-6 mb-6">
+                  <h2 className="text-lg md:text-xl font-semibold text-gray-800 mb-4">Recommended Questions</h2>
+                  <div className="space-y-3">
                     {content.recommendedQuestions.map((question) => (
                       <div 
                         key={question.id}
-                        className="p-4 border border-gray-200 rounded-lg hover:bg-indigo-50 transition-colors cursor-pointer"
+                        className="p-3 md:p-4 border border-gray-200 rounded-lg hover:bg-indigo-50 transition-colors cursor-pointer"
                         onClick={() => handleQuestionClick(question.id)}
                       >
-                        <h3 className="font-medium text-gray-900">{question.text}</h3>
+                        <h3 className="font-medium text-gray-900 text-sm md:text-base">{question.text}</h3>
                       </div>
                     ))}
                   </div>
@@ -461,14 +487,14 @@ export default function CoursePage() {
             </div>
             
             {/* Progress Circle - Right Column */}
-            <div className="lg:w-64 mb-8 lg:mb-0">
-              <div className="sticky top-6 bg-white rounded-xl shadow-md p-6 text-center">
-                <h2 className="text-lg font-semibold text-gray-800 mb-4">Your Progress</h2>
+            <div className="lg:w-64 mb-6 lg:mb-0">
+              <div className="sticky top-6 bg-white rounded-xl shadow-md p-4 md:p-6 text-center">
+                <h2 className="text-base md:text-lg font-semibold text-gray-800 mb-4">Your Progress</h2>
                 <CircularProgress 
-                  progress={content.currentProgress} 
-                  total={content.totalItems} 
+                  progress={content?.currentProgress || 0} 
+                  total={content?.totalItems || 1} 
                 />
-                <div className="mt-6 text-sm text-gray-600">
+                <div className="mt-4 md:mt-6 text-sm text-gray-600">
                   Keep going to complete the course!
                 </div>
               </div>

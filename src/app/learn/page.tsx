@@ -14,6 +14,7 @@ import { ComplexitySelect } from '@/components/ComplexitySelect';
 import { CourseCard } from '@/components/CourseCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'react-hot-toast';
+import { LoadingScreen } from '@/components/LoadingScreen';
 
 export default function LearnPage() {
   const router = useRouter();
@@ -85,38 +86,40 @@ export default function LearnPage() {
   const resumeCourse = enrolledCourses.find(course => !course.progress.isCompleted);
 
   return (
-    <div className="max-w-6xl mx-auto p-4 space-y-8">
+    <div className="max-w-6xl mx-auto p-3 sm:p-4 space-y-6 sm:space-y-8">
+      <LoadingScreen isVisible={isCreating} />
+      
       {/* Create Course Section */}
-      <section className="bg-sky-50 p-4 rounded-xl shadow flex items-center space-x-4">
-        <form onSubmit={handleCreateCourse} className="flex flex-grow items-center space-x-4">
-          <input
-            type="text"
-            placeholder="Enter topic to create course..."
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            className="flex-grow px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring focus:ring-indigo-200"
-            required
-          />
+      <form onSubmit={handleCreateCourse} className="flex flex-col sm:flex-row flex-grow items-center gap-3 sm:gap-4">
+        <input
+          type="text"
+          placeholder="Enter topic to create course..."
+          value={topic}
+          onChange={(e) => setTopic(e.target.value)}
+          className="flex-grow w-full sm:w-auto px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring focus:ring-indigo-100"
+          required
+        />
+        <div className="w-full sm:w-auto sm:basis-1/5">
           <ComplexitySelect value={complexity} onChange={setComplexity} />
-          <button
-            type="submit"
-            disabled={isCreating || !topic.trim()}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm"
-          >
-            {isCreating ? 'Creating...' : 'Create'}
-          </button>
-        </form>
-      </section>
+        </div>
+        <button
+          type="submit"
+          disabled={isCreating || !topic.trim()}
+          className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm sm:text-base"
+        >
+          {isCreating ? 'Creating...' : 'Create'}
+        </button>
+      </form>
 
       {/* Resume Course Section */}
       {resumeCourse && (
-        <section className="bg-white p-4 rounded-xl shadow flex justify-between items-center">
+        <section className="bg-white p-3 sm:p-4 rounded-xl shadow flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
           <CourseCard
             course={resumeCourse}
             onClick={() => router.push(`/learn/${resumeCourse.courseId}`)}
           />
           <button
-            className="ml-4 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg"
+            className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm sm:text-base"
             onClick={() => router.push(`/learn/${resumeCourse.courseId}`)}
           >
             Resume
@@ -125,12 +128,12 @@ export default function LearnPage() {
       )}
 
       {/* Enrolled Courses Section */}
-      <section className="bg-white p-6 rounded-lg shadow">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Enrolled Courses</h2>
+      <section>
+        <div className="flex justify-between items-center mb-3 sm:mb-4">
+          <h2 className="text-lg sm:text-xl font-semibold">Enrolled Courses</h2>
           <button
             onClick={() => setShowCompleted(!showCompleted)}
-            className="text-sm text-indigo-600 hover:underline"
+            className="text-xs sm:text-sm text-indigo-600 hover:underline"
           >
             {showCompleted ? 'Hide Completed' : 'Show Completed'}
           </button>
@@ -143,7 +146,7 @@ export default function LearnPage() {
           </TabsList>
 
           <TabsContent value="ongoing">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {enrolledCourses
                 .filter(course => !course.progress.isCompleted)
                 .slice(0, 6)
@@ -158,7 +161,7 @@ export default function LearnPage() {
           </TabsContent>
 
           <TabsContent value="completed">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {enrolledCourses
                 .filter(course => course.progress.isCompleted)
                 .map(course => (
@@ -174,13 +177,13 @@ export default function LearnPage() {
       </section>
 
       {/* Available Courses Section */}
-      <section className="bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-semibold mb-4">Available Courses</h2>
+      <section>
+        <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Available Courses</h2>
 
         {coursesLoading ? (
           <div className="text-center py-4">Loading...</div>
         ) : availableCourses.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {availableCourses.map(course => (
               <div key={course.courseId} className="flex flex-col">
                 <CourseCard
@@ -189,7 +192,7 @@ export default function LearnPage() {
                 />
                 <button
                   onClick={() => handleEnroll(course.courseId)}
-                  className="mt-2 w-full py-1 px-3 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
+                  className="mt-2 w-full py-1.5 px-3 bg-green-600 text-white rounded-md hover:bg-green-700 text-xs sm:text-sm"
                 >
                   Enroll
                 </button>
@@ -197,7 +200,7 @@ export default function LearnPage() {
             ))}
           </div>
         ) : (
-          <p className="text-gray-500">No available courses at the moment.</p>
+          <p className="text-gray-500 text-sm sm:text-base">No available courses at the moment.</p>
         )}
       </section>
     </div>

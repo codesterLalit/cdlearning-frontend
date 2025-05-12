@@ -9,9 +9,33 @@ import {
   User,
   Course
 } from './types';
+import { customFetch } from './fetch';
+
+// Global logout function that will be set by AuthContext
+let globalLogout: (() => void) | null = null;
+
+export const setGlobalLogout = (logoutFn: () => void) => {
+  globalLogout = logoutFn;
+};
+
+const handleResponse = async (response: Response) => {
+  if (response.status === 401) {
+    if (globalLogout) {
+      globalLogout();
+    }
+    throw new Error('Unauthorized');
+  }
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Request failed');
+  }
+  
+  return response.json();
+};
 
 export const registerUser = async (email: string, username: string, password: string): Promise<RegisterResponse> => {
-  const response = await fetch(`${API_BASE_URL}/auth/register`, {
+  const response = await customFetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -22,7 +46,7 @@ export const registerUser = async (email: string, username: string, password: st
 };
 
 export const loginUser = async (email: string, password: string): Promise<AuthResponse> => {
-  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+  const response = await customFetch(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -33,7 +57,7 @@ export const loginUser = async (email: string, password: string): Promise<AuthRe
 };
 
 export const createCourse = async (topic: string, complexity: ComplexityLevel, token: string): Promise<CourseResponse> => {
-  const response = await fetch(`${API_BASE_URL}/courses`, {
+  const response = await customFetch(`${API_BASE_URL}/courses`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -58,7 +82,7 @@ export const getCourseContent = async (courseId: string, questionId?: string, to
     headers['Authorization'] = `Bearer ${token}`;
   }
   
-  const response = await fetch(url, {
+  const response = await customFetch(url, {
     method: 'GET',
     headers,
   });
@@ -71,7 +95,7 @@ export const finishContent = async (
   type: string,
   token: string
 ): Promise<ProgressResponse> => {
-  const response = await fetch(`${API_BASE_URL}/courses/finish-content`, {
+  const response = await customFetch(`${API_BASE_URL}/courses/finish-content`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -83,7 +107,7 @@ export const finishContent = async (
 };
 
 export const getAvailableCourses = async (token: string): Promise<Course[]> => {
-  const response = await fetch(`${API_BASE_URL}/courses/available`, {
+  const response = await customFetch(`${API_BASE_URL}/courses/available`, {
     headers: {
       'Authorization': `Bearer ${token}`,
     },
@@ -92,7 +116,7 @@ export const getAvailableCourses = async (token: string): Promise<Course[]> => {
 };
 
 export const getEnrolledCourses = async (token: string): Promise<Course[]> => {
-  const response = await fetch(`${API_BASE_URL}/courses/enrolled`, {
+  const response = await customFetch(`${API_BASE_URL}/courses/enrolled`, {
     headers: {
       'Authorization': `Bearer ${token}`,
     },
@@ -101,7 +125,7 @@ export const getEnrolledCourses = async (token: string): Promise<Course[]> => {
 };
 
 export const enrollCourse = async (courseId: string, token: string): Promise<{ success: boolean }> => {
-  const response = await fetch(`${API_BASE_URL}/courses/enroll`, {
+  const response = await customFetch(`${API_BASE_URL}/courses/enroll`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -109,24 +133,15 @@ export const enrollCourse = async (courseId: string, token: string): Promise<{ s
     },
     body: JSON.stringify({ courseId }),
   });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.message || 'Failed to enroll in course');
-  }
-
   return response.json();
 };
 
 export const resetCourseProgress = async (courseId: string, token: string): Promise<void> => {
-  const response = await fetch(`${API_BASE_URL}/courses/${courseId}/progress`, {
+  const response = await customFetch(`${API_BASE_URL}/courses/${courseId}/progress`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${token}`,
     },
   });
-
-  if (!response.ok) {
-    throw new Error('Failed to reset progress');
-  }
+  return response.json();
 };
