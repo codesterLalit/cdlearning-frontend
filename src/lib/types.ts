@@ -24,10 +24,20 @@ export enum ComplexityLevel {
   EXPERT = 'Expert Level',
 }
 
+export interface Progress {
+  isCompleted: boolean;
+  percentage: number;
+  total: number;
+  completed: number
+}
+
 export interface Course {
   courseId: string;
   title: string;
   complexity: ComplexityLevel;
+  lastInteracted?:string;
+  createdAt?: string
+  progress: Progress;
 }
 
 export interface CourseResponse {
@@ -42,6 +52,17 @@ export interface Question {
   answer?: string;
 }
 
+export interface CourseHierarchyItem {
+  id: string;
+  type: string; // "content" or "subcontent"
+  title: string;
+  serialNumber: number | string;
+  current: boolean;
+  parentId?: string;
+}
+
+
+
 export interface ContentResponse {
   type: string;
   id: string;
@@ -51,6 +72,7 @@ export interface ContentResponse {
   requestedQuestion?: Question;
   currentProgress: number;
   totalItems: number;
+  courseHierarchy: CourseHierarchyItem[];
 }
 
 export interface ProgressResponse {
