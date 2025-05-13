@@ -15,7 +15,9 @@ export const CourseCard = ({ course, onClick }: CourseCardProps) => {
         hover:bg-gray-50 transition-all duration-200 
         shadow-sm hover:shadow-md 
         transform hover:-translate-y-1
-        my-4"
+        my-4
+        min-h-50
+        "
     >
       <h3 className="font-medium text-gray-900 text-lg mb-2">{course.title}</h3>
       <div className="space-y-2">

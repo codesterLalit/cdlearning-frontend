@@ -58,8 +58,9 @@ export default function LearnPage() {
       const { course } = await createCourse(topic, complexity, token!);
       await fetchCourses();
       router.push(`/learn/${course.courseId}`);
-    } catch (err) {
-      toast.error('Failed to create course. Please try again.');
+    } catch (err:any) {
+      console.log(err)
+      toast.error(`${err.message?err.message: 'Failed to create course. Please try again.'}`);
     } finally {
       setIsCreating(false);
     }
@@ -188,7 +189,7 @@ export default function LearnPage() {
               <div key={course.courseId} className="flex flex-col">
                 <CourseCard
                   course={course}
-                  onClick={() => router.push(`/learn/${course.courseId}`)}
+                  onClick={() => console.log('test')}
                 />
                 <button
                   onClick={() => handleEnroll(course.courseId)}
